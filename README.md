@@ -5,40 +5,24 @@ You will need to install PySimpleGUI for any of these widgets to execute.
 
 ## List of Widgets
 
-## COVID19_Distance - Computes the distance of the 4 closes cases of the COVID-19 Virus to the location provided.  Requires PySimpleGUI and geopy
+--------
 
-Choose your color scheme using the PySimpleGUI color themes.  Over 100 to choose from.
-
-Dark Red
-
-![image](https://user-images.githubusercontent.com/46163555/76235485-8b503400-6201-11ea-9462-30b7311241df.png)
-
-Light Green 6
-
-![image](https://user-images.githubusercontent.com/46163555/76235530-9a36e680-6201-11ea-8163-c74b08296dd4.png)
-
-No theme
-
-![image](https://user-images.githubusercontent.com/46163555/76235563-a622a880-6201-11ea-8852-c4f7c7759f45.png)
-
-### Data Source - Johns Hopkins CSSE
-
-The data source is:
-  2019 Novel Coronavirus COVID-19 (2019-nCoV) Data Repository by Johns Hopkins CSSE
-  https://github.com/CSSEGISandData/COVID-19
-
-### Dashboards - Also available from Johns Hopkins
-
-Visual Dashboard (desktop):
-
-https://www.arcgis.com/apps/opsdashboard/index.html#/bda7594740fd40299423467b48e9ecf6
-
-Visual Dashboard (mobile):
-
-http://www.arcgis.com/apps/opsdashboard/index.html#/85320e2ea5424dfaaa75ae62e5c06e61
-
+NOTE - The COVID19 Widget has been removed.  The data sources were changed and it no longer properly worked. Sorry about that!
 
 --------------------
+
+## System Status Dashboard
+
+Displays some stats found via the psutil package (required)
+
+![System Status Dashboard](https://user-images.githubusercontent.com/46163555/83331138-38b37080-a262-11ea-83a6-3864f7b8291e.gif)
+
+This is one of the older programs.  Hopefully the coding conventions are up to date.
+
+It uses a class to define the individual graphs which is likely a great way to have done it.  It's worth a look to see if it gives you some ideas.  Only recently re-discovered.
+
+---------------------
+
 
 ## Weather - Current Weather Conditions
 
