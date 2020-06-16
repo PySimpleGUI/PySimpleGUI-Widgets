@@ -45,6 +45,18 @@ This one uses psutil to graph the CPU time used by each of your CPU's cores.
 
 --------------------------
 
+## Top CPU Usage Processes
+
+Another psutil based Widget.
+
+Adjust how often you want the widget to refresh using the spinner.  
+
+![image](https://user-images.githubusercontent.com/46163555/84802089-0c238680-afce-11ea-844b-1038f0b722e2.png)
+
+
+--------------------------------
+
+
 ## Disk Drive Usage
 
 Another one based on psutil.  The Windows version works well, however the partition stats returned on Linux don't have values populated to determine the stats.  Maybe it works differently on Linux?  They come out to all 0's on Linux (sorry Linux users)
