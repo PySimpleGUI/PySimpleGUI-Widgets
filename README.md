@@ -75,4 +75,21 @@ The default alpha value is .7 which is why these images' colors are muted.  This
 
 To exit click the "X" at the bottom.  Kept the interface super minimal by not using buttons, but instead simple clickable Text.
 
+
+------------------------------
+
+## RAM Used
+
+Another psutil based widget.
+
+It's a simple square that is shaded to represent the amount of RAM being used.  The percent used and the number of bytes used is then shown in text on top of the shaded bar.
+
+Clicking the bottom left corner will allow you to exit.  There's a text X there, but it's the lower 20x20 pixel area that's actually being watched.
+
+The color scheme is based on the chosen theme's button color.  The background color for the window is the theme's background color.  The filled portion is the theme's button background color and the text is the theme's button text color.
+
+![SNAG-0835](https://user-images.githubusercontent.com/46163555/84791471-a41a7380-afc0-11ea-9cf9-2ad54862b030.jpg)
+![SNAG-0834](https://user-images.githubusercontent.com/46163555/84791474-a4b30a00-afc0-11ea-8496-895396d3971c.jpg)
+
+
 Copyright 2020 PySimpleGUI.org
