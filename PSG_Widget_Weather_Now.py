@@ -3,51 +3,45 @@ import datetime
 import base64
 from urllib import request
 import json
-from json import load as jsonload
-from json import dump as jsondump
-
-from os import path
+import sys
+import webbrowser
 
 """
     A Current Weather Widget
-    
+
     Adapted from the weather widget originally created and published by Israel Dryer that you'll find here:
     https://github.com/israel-dryer/Weather-App
-    
+
     BIG THANKS goes out for creating a good starting point for other widgets to be build from.
-    
+
     A true "Template" is being developed that is a little more abstracted to make creating your own
     widgets easy.  Things like the settings window is being standardized, the settings file format too.
-    
+
     You will need a key (APPID) from OpenWeathermap.org in order to run this widget. It's free, it's easy:
     https://home.openweathermap.org/
-    
+
     Your initial location is determined using your IP address and will be used if no settings file is found
-    
+
     This widget is an early version of a PSG Widget so it may not share the same names / constructs as the templates. 
-        
+
     Copyright 2020 PySimpleGUI - www.PySimpleGUI.com
-    
+
 """
 
-# If no settings file is found, then these values will be used as the default values in the settings window
-DEFAULT_SETTINGS = {'location': 'New York, NY', 'api key': 'PASTE YOUR API KEY HERE!!!'}
+SETTINGS_PATH = '.'
 
-SETTINGS_FILE = path.join(path.dirname(__file__), r'weather-now-widget.cfg')
+API_KEY = ''  # Set using the "Settings" window and saved in your config file
 
-API_KEY = ''            # Set using the "Settings" window and saved in your config file
-
-
-sg.ChangeLookAndFeel('Light Green 6')
+sg.theme('Light Green 6')
 ALPHA = 0.8
 
 BG_COLOR = sg.theme_text_color()
 TXT_COLOR = sg.theme_background_color()
 
 APP_DATA = {
-    'City': 'Pittsboro',
+    'City': 'New York',
     'Country': 'US',
-    'Postal': 27312,
+    'Postal': 10001,
     'Description': 'clear skys',
     'Temp': 101.0,
     'Feels Like': 72.0,
@@ -63,47 +57,53 @@ APP_DATA = {
 
 def load_settings():
     global API_KEY
-
-    try:
-        with open(SETTINGS_FILE, 'r') as f:
-            settings = jsonload(f)
-            API_KEY = settings['api key']
-    except:
-        sg.popup_quick_message('No settings file found... will create one for you', keep_on_top=True, background_color='red', text_color='white', auto_close_duration=3, non_blocking=False)
-        settings = change_settings(DEFAULT_SETTINGS)
-        save_settings(settings)
+    settings = sg.UserSettings(path=SETTINGS_PATH)
+    API_KEY = settings['-api key-']
+    if not API_KEY:
+        sg.popup_quick_message('No valid API key found... opening setup window...', keep_on_top=True, background_color='red', text_color='white',
+                               auto_close_duration=3, non_blocking=False)
+        change_settings(settings)
     return settings
-
-
-def save_settings(settings):
-    with open(SETTINGS_FILE, 'w') as f:
-        jsondump(settings, f)
 
 
 def change_settings(settings, window_location=(None, None)):
     global APP_DATA, API_KEY
 
+    try:
+        nearest_postal = json.loads(request.urlopen('http://ipapi.co/json').read())['postal']
+    except Exception as e:
+        print('Error getting nearest postal', e)
+        nearest_postal = ''
+
     layout = [[sg.T('Enter Zipcode or City for your location')],
-              [sg.I(settings.get('location', ''), size=(15,1), key='location')],
-              [sg.I(settings['api key'], size=(32,1), key='api key')],
-              [sg.B('Ok', border_width=0, bind_return_key=True), sg.B('Cancel', border_width=0)],]
+              [sg.I(settings.get('-location-', nearest_postal), size=(15, 1), key='-LOCATION-')],
+              [sg.I(settings.get('-api key-', ''), size=(32, 1), key='-API KEY-')],
+              [sg.B('Ok', border_width=0, bind_return_key=True),  sg.B('Register For a Key', border_width=0, k='-REGISTER-'), sg.B('Cancel', border_width=0)], ]
 
     window = sg.Window('Settings', layout, location=window_location, no_titlebar=True, keep_on_top=True, border_depth=0)
     event, values = window.read()
     window.close()
 
-    if event == 'Ok':
-        new_city = settings['location'] = values['location']
-        API_KEY = settings['api key'] = values['api key']
+    if event == '-REGISTER-':
+        sg.popup('Launching browser so you can signup for the "Current Weather" service from OpenWeatherMap.org to get a Free API Key', 'Click OK and your browser will open', r'Visit https://home.openweathermap.org/ for more information', location=window_location)
+        # Register to get a free key
+        webbrowser.open(r'https://home.openweathermap.org/users/sign_up')
 
-        if new_city is not None:
-            if new_city.isnumeric() and len(new_city) == 5 and new_city is not None:
-                APP_DATA['Postal'] = new_city
-                APP_DATA['City'] = ''
-            else:
-                APP_DATA['City'] = new_city
-                APP_DATA['Postal'] = ''
-        save_settings(settings)
+
+    if event == 'Ok':
+        user_location = settings['-location-'] = values['-LOCATION-']
+        API_KEY = settings['-api key-'] = values['-API KEY-']
+    else:
+        API_KEY = settings['-api key-']
+        user_location = settings['-location-']
+
+    if user_location is not None:
+        if user_location.isnumeric() and len(user_location) == 5 and user_location is not None:
+            APP_DATA['Postal'] = user_location
+            APP_DATA['City'] = ''
+        else:
+            APP_DATA['City'] = user_location
+            APP_DATA['Postal'] = ''
 
     return settings
 
@@ -126,7 +126,7 @@ def create_endpoint(endpoint_type=0):
             return
     elif endpoint_type == 2:
         try:
-            endpoint = f"http://api.openweathermap.org/data/2.5/weather?q={APP_DATA['City'].replace(' ','%20')},us&APPID={API_KEY}&units={APP_DATA['Units']}"
+            endpoint = f"http://api.openweathermap.org/data/2.5/weather?q={APP_DATA['City'].replace(' ', '%20')},us&APPID={API_KEY}&units={APP_DATA['Units']}"
             return endpoint
         except ConnectionError:
             return
@@ -149,7 +149,7 @@ def request_weather_data(endpoint):
                            'Is your API Key set correctly?',
                            API_KEY, keep_on_top=True)
             return
-    
+
     if response.reason == 'OK':
         weather = json.loads(response.read())
         APP_DATA['City'] = weather['name'].title()
@@ -173,25 +173,29 @@ def metric_row(metric):
     return [sg.Text(metric, font=('Arial', 10), pad=(15, 0), size=(9, 1)),
             sg.Text(APP_DATA[metric], font=('Arial', 10, 'bold'), pad=(0, 0), size=(9, 1), key=metric)]
 
-def create_window():
+
+def create_window(win_location):
     """ Create the application window """
     col1 = sg.Column(
-        [[sg.Text(APP_DATA['City'], font=('Arial Rounded MT Bold', 18), pad=((10, 0), (50, 0)), size=(18, 1), background_color=BG_COLOR, text_color=TXT_COLOR, key='City')],
-        [sg.Text(APP_DATA['Description'], font=('Arial', 12), pad=(10, 0), background_color=BG_COLOR, text_color=TXT_COLOR, key='Description')]],
-            background_color=BG_COLOR, key='COL1')
+        [[sg.Text(APP_DATA['City'], font=('Arial Rounded MT Bold', 18), pad=((10, 0), (50, 0)), size=(18, 1), background_color=BG_COLOR, text_color=TXT_COLOR,
+                  key='City')],
+         [sg.Text(APP_DATA['Description'], font=('Arial', 12), pad=(10, 0), background_color=BG_COLOR, text_color=TXT_COLOR, key='Description')]],
+        background_color=BG_COLOR, key='COL1')
 
     col2 = sg.Column(
-        [[sg.Text('×', font=('Arial Black', 16), pad=(0, 0), justification='right', background_color=BG_COLOR, text_color=TXT_COLOR, enable_events=True, key='-QUIT-')],
-        [sg.Image(data=APP_DATA['Icon'], pad=((5, 10), (0, 0)), size=(100, 100), background_color=BG_COLOR, key='Icon')]],
-            element_justification='center', background_color=BG_COLOR, key='COL2')
+        [[sg.Text('×', font=('Arial Black', 16), pad=(0, 0), justification='right', background_color=BG_COLOR, text_color=TXT_COLOR, enable_events=True,
+                  key='-QUIT-')],
+         [sg.Image(data=APP_DATA['Icon'], pad=((5, 10), (0, 0)), size=(100, 100), background_color=BG_COLOR, key='Icon')]],
+        element_justification='center', background_color=BG_COLOR, key='COL2')
 
     col3 = sg.Column(
         [[sg.Text(APP_DATA['Updated'], font=('Arial', 8), background_color=BG_COLOR, text_color=TXT_COLOR, key='Updated')]],
-            pad=(10, 5), element_justification='left', background_color=BG_COLOR, key='COL3')
+        pad=(10, 5), element_justification='left', background_color=BG_COLOR, key='COL3')
 
     col4 = sg.Column(
-        [[sg.Text('click to change city', font=('Arial', 8, 'italic'), background_color=BG_COLOR, text_color=TXT_COLOR, enable_events=True, key='-CHANGE-')]],
-            pad=(10, 5), element_justification='right', background_color=BG_COLOR, key='COL4')
+        [[sg.Text('Settings', font=('Arial', 8, 'italic'), background_color=BG_COLOR, text_color=TXT_COLOR, enable_events=True, key='-CHANGE-'),
+          sg.Text('Refresh', font=('Arial', 8, 'italic'), background_color=BG_COLOR, text_color=TXT_COLOR, enable_events=True, key='-REFRESH-')]],
+        pad=(10, 5), element_justification='right', background_color=BG_COLOR, key='COL4')
 
     top_col = sg.Column([[col1, col2]], pad=(0, 0), background_color=BG_COLOR, key='TopCOL')
 
@@ -199,18 +203,18 @@ def create_window():
 
     lf_col = sg.Column(
         [[sg.Text(APP_DATA['Temp'], font=('Haettenschweiler', 90), pad=((10, 0), (0, 0)), justification='center', key='Temp')]],
-            pad=(10, 0), element_justification='center', key='LfCOL')
+        pad=(10, 0), element_justification='center', key='LfCOL')
 
     rt_col = sg.Column(
         [metric_row('Feels Like'), metric_row('Wind'), metric_row('Humidity'), metric_row('Precip 1hr'), metric_row('Pressure')],
-            pad=((15, 0), (25, 5)), key='RtCOL')
+        pad=((15, 0), (25, 5)), key='RtCOL')
 
     layout = [[top_col],
               [lf_col, rt_col],
               [bot_col]]
 
-    window = sg.Window(layout=layout, title='Weather Widget', margins=(0, 0), finalize=True,
-        element_justification='center', keep_on_top=True, no_titlebar=True, grab_anywhere=True, alpha_channel=ALPHA)
+    window = sg.Window(layout=layout, title='Weather Widget', margins=(0, 0), finalize=True, location=win_location,
+                       element_justification='center', keep_on_top=True, no_titlebar=True, grab_anywhere=True, alpha_channel=ALPHA)
 
     for col in ['COL1', 'COL2', 'TopCOL', 'BotCOL', '-QUIT-']:
         window[col].expand(expand_y=True, expand_x=True)
@@ -220,6 +224,7 @@ def create_window():
 
     window['-CHANGE-'].set_cursor('hand2')
     window['-QUIT-'].set_cursor('hand2')
+    window['-REFRESH-'].set_cursor('hand2')
 
     return window
 
@@ -235,21 +240,13 @@ def update_metrics(window):
             window[metric].update(APP_DATA[metric])
 
 
-def main(refresh_rate):
+def main(refresh_rate, win_location):
     """ The main program routine """
-    timeout_minutes = refresh_rate * 60 * 1000
-
-
-    # Try to get the current users ip location in case no config file found
-    try:
-        postal = json.loads(request.urlopen('http://ipapi.co/json').read())['postal']
-        DEFAULT_SETTINGS['location'] = postal
-    except ConnectionError:
-        pass
+    refresh_in_milliseconds = refresh_rate * 60 * 1000
 
     # Load settings from config file. If none found will create one
     settings = load_settings()
-    location = settings['location']
+    location = settings['-location-']
     if location is not None:
         if location.isnumeric() and len(location) == 5 and location is not None:
             APP_DATA['Postal'] = location
@@ -259,24 +256,33 @@ def main(refresh_rate):
             APP_DATA['Postal'] = ''
         update_weather()
     else:
-        sg.popup_error('Having trouble with location', 'Application data:', APP_DATA)
+        sg.popup_error('Having trouble with location.  Your location: ', location)
         exit()
 
-    window = create_window()
+    window = create_window(win_location)
 
-    while True:     # Event Loop
-        event, values = window.read(timeout=timeout_minutes)
+    while True:  # Event Loop
+        event, values = window.read(timeout=refresh_in_milliseconds)
         if event in (None, '-QUIT-'):
             break
         if event == '-CHANGE-':
-            x,y = window.current_location()
-            settings = change_settings(settings, (x+405,y) )
+            x, y = window.current_location()
+            settings = change_settings(settings, (x + 405, y))
+        elif event == '-REFRESH-':
+            sg.popup_quick_message('Refreshing...', keep_on_top=True, background_color='red', text_color='white',
+                                   auto_close_duration=3, non_blocking=False)
         elif event != sg.TIMEOUT_KEY:
-            sg.Print(event, values)
+            sg.Print('Unknown event received\nEvent & values:\n', event, values)
 
         update_weather()
         update_metrics(window)
     window.close()
 
+
 if __name__ == '__main__':
-    main(refresh_rate=5)
+    if len(sys.argv) > 1:
+        location = sys.argv[1].split(',')
+        location = (int(location[0]), int(location[1]))
+    else:
+        location = (None, None)
+    main(refresh_rate=1, win_location=location)
